@@ -5,6 +5,7 @@ const cors = require("cors");
 const { FRONTEND_DIST, PORT } = require("./config");
 const carsRouter = require("./routes/cars");
 const garagesRouter = require("./routes/garages");
+const aisensyRouter = require("./routes/aisensy");
 
 const app = express();
 
@@ -33,6 +34,20 @@ app.use("/api/cars", carsRouter);
 app.use("/cars", carsRouter);
 app.use("/api/garages", garagesRouter);
 app.use("/garages", garagesRouter);
+app.use("/api/aisensy", aisensyRouter);
+app.use("/aisensy", aisensyRouter);
+
+app.get("/api", (_req, res) => {
+  res.json({
+    status: "online",
+    message: "MechHelp API Microservice is running",
+    endpoints: {
+      cars: "/api/cars",
+      garages: "/api/garages",
+      aisensy: "/api/aisensy/service-plans",
+    },
+  });
+});
 
 if (fs.existsSync(FRONTEND_DIST)) {
   app.use(express.static(FRONTEND_DIST));
