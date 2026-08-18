@@ -14,6 +14,7 @@ class AISensyService {
       params.query ||
       params.vehicle ||
       params.model ||
+      params.vname ||
       params.c1 ||
       params.text ||
       "";
