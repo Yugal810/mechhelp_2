@@ -18,6 +18,8 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.text({ type: "*/*" }));
 
 const connectDB = require("./db");
 app.use(async (req, res, next) => {

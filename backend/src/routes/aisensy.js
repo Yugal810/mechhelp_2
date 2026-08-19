@@ -9,16 +9,25 @@ const router = express.Router();
  */
 async function handleServicePlans(req, res) {
   try {
-    let bodyObj = req.body || {};
-    if (typeof bodyObj === "string") {
+    let bodyObj = {};
+    if (typeof req.body === "object" && req.body !== null) {
+      bodyObj = req.body;
+    } else if (typeof req.body === "string" && req.body.trim()) {
       try {
-        bodyObj = JSON.parse(bodyObj);
-      } catch (e) {
-        bodyObj = { rawText: req.body };
+        bodyObj = JSON.parse(req.body);
+      } catch (e1) {
+        try {
+          const parsed = new URLSearchParams(req.body);
+          for (const [k, v] of parsed.entries()) {
+            bodyObj[k] = v;
+          }
+        } catch (e2) {
+          bodyObj = { rawText: req.body };
+        }
       }
     }
     const params = { ...req.query, ...bodyObj };
-    console.log("📥 AiSensy Request Params:", JSON.stringify(params));
+    console.log("📥 AiSensy Incoming Request Params:", JSON.stringify(params));
     const result = await aiSensyService.getServicePlans(params);
     res.json(result);
   } catch (err) {
