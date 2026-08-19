@@ -10,6 +10,10 @@ class AISensyService {
    * Parse user query string and parameters to extract fuelType, year, car model query, and selected plan.
    */
   parseInput(params = {}) {
+    if (typeof params === "string") {
+      params = { query: params };
+    }
+
     let rawQuery =
       params.query ||
       params.vehicle ||
@@ -18,6 +22,7 @@ class AISensyService {
       params.c1 ||
       params.C1 ||
       params.text ||
+      params.rawText ||
       "";
     let rawFuel = params.fuelType || params.fuel_type || params.fuel || "";
     let rawYear = params.year || params.custom_year || "";

@@ -9,7 +9,16 @@ const router = express.Router();
  */
 async function handleServicePlans(req, res) {
   try {
-    const params = { ...req.query, ...req.body };
+    let bodyObj = req.body || {};
+    if (typeof bodyObj === "string") {
+      try {
+        bodyObj = JSON.parse(bodyObj);
+      } catch (e) {
+        bodyObj = { rawText: req.body };
+      }
+    }
+    const params = { ...req.query, ...bodyObj };
+    console.log("📥 AiSensy Request Params:", JSON.stringify(params));
     const result = await aiSensyService.getServicePlans(params);
     res.json(result);
   } catch (err) {
