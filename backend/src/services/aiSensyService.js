@@ -57,15 +57,15 @@ class AISensyService {
     // Clean up extra spaces in query
     let modelQuery = rawQuery.replace(/\s+/g, " ").trim();
 
-    // Handle AiSensy editor Test button (which sends raw un-evaluated template strings like "{{$ vname }}")
+    // If template placeholder wasn't replaced by AiSensy (e.g. attribute name mismatch), clear placeholder
     if (modelQuery.includes("{{$") || modelQuery.includes("{{")) {
-      modelQuery = "Honda Amaze";
+      modelQuery = "";
     }
     if (rawFuel.includes("{{$") || rawFuel.includes("{{")) {
-      rawFuel = "Petrol";
+      rawFuel = "";
     }
     if (selectedPlan.includes("{{$") || selectedPlan.includes("{{")) {
-      selectedPlan = "Mech Basic";
+      selectedPlan = "";
     }
 
     return {
