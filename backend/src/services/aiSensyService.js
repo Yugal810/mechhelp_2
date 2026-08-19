@@ -16,12 +16,26 @@ class AISensyService {
       params.model ||
       params.vname ||
       params.c1 ||
+      params.C1 ||
       params.text ||
       "";
     let rawFuel = params.fuelType || params.fuel_type || params.fuel || "";
     let rawYear = params.year || params.custom_year || "";
     let selectedPlan =
       params.selected_plan || params.selectedPlan || params.plan || "";
+
+    // Auto-detect vehicle query from any string parameter if primary keys are unreplaced template tags or empty
+    if (!rawQuery || rawQuery.includes("{{$") || rawQuery.includes("{{")) {
+      for (const [key, val] of Object.entries(params)) {
+        if (typeof val === "string" && val.trim() && !val.includes("{{$") && !val.includes("{{")) {
+          const kLower = key.toLowerCase();
+          if (!["fueltype", "fuel_type", "fuel", "selectedplan", "selected_plan", "plan"].includes(kLower)) {
+            rawQuery = val.trim();
+            break;
+          }
+        }
+      }
+    }
 
     rawQuery = String(rawQuery).trim();
     rawFuel = String(rawFuel).trim();
