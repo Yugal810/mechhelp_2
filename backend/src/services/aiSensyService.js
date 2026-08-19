@@ -55,7 +55,18 @@ class AISensyService {
     }
 
     // Clean up extra spaces in query
-    const modelQuery = rawQuery.replace(/\s+/g, " ").trim();
+    let modelQuery = rawQuery.replace(/\s+/g, " ").trim();
+
+    // Handle AiSensy editor Test button (which sends raw un-evaluated template strings like "{{$ vname }}")
+    if (modelQuery.includes("{{$") || modelQuery.includes("{{")) {
+      modelQuery = "Honda Amaze";
+    }
+    if (rawFuel.includes("{{$") || rawFuel.includes("{{")) {
+      rawFuel = "Petrol";
+    }
+    if (selectedPlan.includes("{{$") || selectedPlan.includes("{{")) {
+      selectedPlan = "Mech Basic";
+    }
 
     return {
       modelQuery,
@@ -167,39 +178,42 @@ class AISensyService {
     if (selectedPlan) {
       const planLower = selectedPlan.toLowerCase();
       if (planLower.includes("lite")) {
-        planHighlight = `⭐ *Updated Rate for Mech Lite:* ${mechLitePrice}`;
+        planHighlight = `⭐ *Chosen Plan (Mech Lite):* ${mechLitePrice}`;
       } else if (planLower.includes("basic")) {
-        planHighlight = `⭐ *Updated Rate for Mech Basic:* ${mechBasicPrice}`;
+        planHighlight = `⭐ *Chosen Plan (Mech Basic):* ${mechBasicPrice}`;
       } else if (planLower.includes("pro")) {
-        planHighlight = `⭐ *Updated Rate for Mech Pro:* ${mechProPrice}`;
+        planHighlight = `⭐ *Chosen Plan (Mech Pro):* ${mechProPrice}`;
       }
     }
 
+    const vehicleFullName = `${car.brand} ${car.model} ${car.variant}`.trim();
+    const oilCapText = car.oilCapacity || "Standard";
+
+    let headerMessage = "";
+    if (!isStandard3L && rawOilCap) {
+      headerMessage = `The *${vehicleFullName}* (${car.fuelType || fuelType || "Petrol"}) has an engine oil capacity of *${oilCapText}*.\n\nBased on your vehicle's oil capacity, here is your updated plan pricing:`;
+    } else {
+      headerMessage = `🚘 *Vehicle:* ${vehicleFullName}\n⛽ *Fuel Type:* ${car.fuelType || fuelType || "Petrol"}\n🛢️ *Engine Oil Capacity:* ${oilCapText}`;
+    }
+
     const whatsappMessage = [
-      `🚗 *MECHHELP Service Plan Quote*`,
+      `🚗 *MECHHELP Service Quote*`,
       ``,
-      `🚘 *Vehicle:* ${car.brand} ${car.model} ${car.variant}`.trim(),
-      `⛽ *Fuel Type:* ${car.fuelType || fuelType || "Standard"}`,
-      `📅 *Year Range:* ${car.year || year || "All"}`,
-      car.oilCapacity ? `🛢️ *Engine Oil Capacity:* ${car.oilCapacity}` : null,
-      car.pricingCategory ? `🏷️ *Category:* ${car.pricingCategory}` : null,
+      headerMessage,
       ``,
-      oilCapacityNotice ? oilCapacityNotice : null,
-      oilCapacityNotice ? `` : null,
       planHighlight ? planHighlight : null,
       planHighlight ? `` : null,
-      `📋 *Package Prices for Your Vehicle:*`,
+      `📋 *Plan Pricing for Your Vehicle:*`,
       `🔹 *Mech Lite:* ${mechLitePrice}`,
       `🔹 *Mech Basic:* ${mechBasicPrice}`,
       `🔹 *Mech Pro:* ${mechProPrice}`,
       ``,
-      `👉 *How to book?*`,
-      `Reply with *Book* to confirm your service booking!`,
+      `Please click *Proceed* below to continue with your booking!`,
     ]
       .filter(Boolean)
       .join("\n");
 
-    return {
+    const responsePayload = {
       success: true,
       matched: true,
       total_matches: cars.length,
@@ -226,7 +240,19 @@ class AISensyService {
         raw_pro: car.mechPro,
       },
       whatsapp_text: whatsappMessage,
+      text: whatsappMessage,
+      message: whatsappMessage,
+      data: {
+        whatsapp_text: whatsappMessage,
+        text: whatsappMessage,
+        message: whatsappMessage,
+        mech_lite: mechLitePrice,
+        mech_basic: mechBasicPrice,
+        mech_pro: mechProPrice,
+      },
     };
+
+    return responsePayload;
   }
 }
 
