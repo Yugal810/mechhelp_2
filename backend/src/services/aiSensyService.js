@@ -42,10 +42,10 @@ class AISensyService {
       }
     }
 
-    rawQuery = String(rawQuery).trim();
-    rawFuel = String(rawFuel).trim();
-    rawYear = String(rawYear).trim();
-    selectedPlan = String(selectedPlan).trim();
+    rawQuery = String(rawQuery).replace(/\{\{/g, "").replace(/\}\}/g, "").replace(/\$/g, "").trim();
+    rawFuel = String(rawFuel).replace(/\{\{/g, "").replace(/\}\}/g, "").replace(/\$/g, "").trim();
+    rawYear = String(rawYear).replace(/\{\{/g, "").replace(/\}\}/g, "").replace(/\$/g, "").trim();
+    selectedPlan = String(selectedPlan).replace(/\{\{/g, "").replace(/\}\}/g, "").replace(/\$/g, "").trim();
 
     // 1. Extract Fuel Type if present in query string
     if (!rawFuel) {
