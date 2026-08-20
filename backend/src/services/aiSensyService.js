@@ -63,7 +63,7 @@ class AISensyService {
     if (!modelQuery && !fuelType && !year) {
       return {
         whatsapp_text:
-          "⚠️ Please provide your vehicle model and year (e.g. *Honda Amaze 2018*).",
+          "Please provide your vehicle model and year (e.g. *Honda Amaze 2018*).",
       };
     }
 
@@ -105,7 +105,7 @@ class AISensyService {
 
     if (!cars || cars.length === 0) {
       return {
-        whatsapp_text: `❌ Sorry, we couldn't find service plan details for *${modelQuery || "your vehicle"
+        whatsapp_text: `Sorry, we couldn't find service plan details for *${modelQuery || "your vehicle"
           }* (${fuelType || "Any fuel"}${year ? ", " + year : ""}).\n\nPlease check the spelling or type a different model (e.g. *Honda Amaze 2018*).`,
       };
     }
@@ -131,7 +131,7 @@ class AISensyService {
     if (!isStandard3L && rawOilCap) {
       headerMessage = `The *${vehicleFullName}* (${car.fuelType || fuelType || "Petrol"}) has an engine oil capacity of *${oilCapText}*.`;
     } else {
-      headerMessage = `🚘 *Vehicle:* ${vehicleFullName}\n⛽ *Fuel Type:* ${car.fuelType || fuelType || "Petrol"}\n🛢️ *Engine Oil Capacity:* ${oilCapText}`;
+      headerMessage = `*Vehicle:* ${vehicleFullName}\n*Fuel Type:* ${car.fuelType || fuelType || "Petrol"}\n*Engine Oil Capacity:* ${oilCapText}`;
     }
 
     const planLower = String(selectedPlan).toLowerCase();
@@ -152,7 +152,7 @@ class AISensyService {
       headerMessage,
       ``,
       `Based on your vehicle's oil capacity, your updated plan price is:`,
-      `⭐ *${chosenPlanName}:* ${formatPrice(rawPriceVal)}`,
+      `*${chosenPlanName}:* ${formatPrice(rawPriceVal)}`,
       ``,
       `Please click *Proceed* below to continue with your booking!`,
     ]
@@ -192,9 +192,9 @@ class AISensyService {
       addressLower.includes("}}")
     ) {
       return {
-        whatsapp_text: "⚠️ Please enter your location or address in Nagpur.",
+        whatsapp_text: "Please enter your location or address in Nagpur.",
         data: {
-          whatsapp_text: "⚠️ Please enter your location or address in Nagpur.",
+          whatsapp_text: "Please enter your location or address in Nagpur.",
         },
       };
     }
@@ -210,25 +210,24 @@ class AISensyService {
 
     if (!nearestList || nearestList.length === 0) {
       return {
-        whatsapp_text: `📍 Thank you! We received your address (*${address}*). Our customer service executive will contact you shortly to confirm your booking and assign the nearest garage.`,
+        whatsapp_text: `Thank you! We received your address (*${address}*). Our customer service executive will contact you shortly to confirm your booking and assign the nearest garage.`,
         data: {
-          whatsapp_text: `📍 Thank you! We received your address (*${address}*). Our customer service executive will contact you shortly to confirm your booking and assign the nearest garage.`,
+          whatsapp_text: `Thank you! We received your address (*${address}*). Our customer service executive will contact you shortly to confirm your booking and assign the nearest garage.`,
         },
       };
     }
 
     const top3 = nearestList.slice(0, 3);
     const garageLines = top3.map((g, idx) => {
-      const numEmoji = idx === 0 ? "1️⃣" : idx === 1 ? "2️⃣" : "3️⃣";
       const distStr = g.distance_km || g.distance || "Nearby";
       return [
-        `${numEmoji} *${g.garage_name}*`,
-        `🚗 Distance: ${distStr}`,
+        `${idx + 1}. *${g.garage_name}*`,
+        `Distance: ${distStr}`,
       ].join("\n");
     });
 
     const whatsappMessage = [
-      `🔧 *Nearest MECHHELP Partner Garages*`,
+      `*Nearest MECHHELP Partner Garages*`,
       ``,
       `Here are the top 3 partner garages closest to your location (*${address}*):`,
       ``,
