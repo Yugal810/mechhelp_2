@@ -223,12 +223,8 @@ class AISensyService {
       const distStr = g.distance_km || g.distance || "Nearby";
       return [
         `${numEmoji} *${g.garage_name}*`,
-        `📍 Address: ${g.address || "Nagpur"}`,
-        g.contact ? `📞 Contact: ${g.contact}` : null,
         `🚗 Distance: ${distStr}`,
-      ]
-        .filter(Boolean)
-        .join("\n");
+      ].join("\n");
     });
 
     const whatsappMessage = [
