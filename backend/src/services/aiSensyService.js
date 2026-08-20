@@ -11,37 +11,20 @@ class AISensyService {
    */
   parseInput(params = {}) {
     if (typeof params === "string") {
-      params = { query: params };
+      params = { vname: params };
     }
 
     let rawQuery =
-      params.query ||
-      params.vehicle ||
-      params.model ||
       params.vname ||
-      params.c1 ||
-      params.C1 ||
-      params.text ||
-      params.rawText ||
+      params.vehicle ||
+      params.query ||
       "";
     let rawFuel = params.fuelType || params.fuel_type || params.fuel || "";
     let rawYear = params.year || params.custom_year || "";
     let selectedPlan =
-      params.selected_plan || params.selectedPlan || params.plan || "";
+      params.selectedPlan || params.selected_plan || params.plan || "";
 
-    // Auto-detect vehicle query from any string parameter if primary keys are unreplaced template tags or empty
-    if (!rawQuery || rawQuery.includes("{{$") || rawQuery.includes("{{")) {
-      for (const [key, val] of Object.entries(params)) {
-        if (typeof val === "string" && val.trim() && !val.includes("{{$") && !val.includes("{{")) {
-          const kLower = key.toLowerCase();
-          if (!["fueltype", "fuel_type", "fuel", "selectedplan", "selected_plan", "plan"].includes(kLower)) {
-            rawQuery = val.trim();
-            break;
-          }
-        }
-      }
-    }
-
+    // Clean any leftover {{ }} or $ template wrappers
     rawQuery = String(rawQuery).replace(/\{\{/g, "").replace(/\}\}/g, "").replace(/\$/g, "").trim();
     rawFuel = String(rawFuel).replace(/\{\{/g, "").replace(/\}\}/g, "").replace(/\$/g, "").trim();
     rawYear = String(rawYear).replace(/\{\{/g, "").replace(/\}\}/g, "").replace(/\$/g, "").trim();
@@ -76,17 +59,6 @@ class AISensyService {
     // Clean up extra spaces in query
     let modelQuery = rawQuery.replace(/\s+/g, " ").trim();
 
-    // If template placeholder wasn't replaced by AiSensy (e.g. attribute name mismatch), clear placeholder
-    if (modelQuery.includes("{{$") || modelQuery.includes("{{")) {
-      modelQuery = "";
-    }
-    if (rawFuel.includes("{{$") || rawFuel.includes("{{")) {
-      rawFuel = "";
-    }
-    if (selectedPlan.includes("{{$") || selectedPlan.includes("{{")) {
-      selectedPlan = "";
-    }
-
     return {
       modelQuery,
       fuelType: rawFuel,
@@ -103,9 +75,6 @@ class AISensyService {
 
     if (!modelQuery && !fuelType && !year) {
       return {
-        success: false,
-        matched: false,
-        message: "Please provide vehicle model and year.",
         whatsapp_text:
           "⚠️ Please provide your vehicle model and year (e.g. *Honda Amaze 2018*).",
       };
@@ -121,18 +90,17 @@ class AISensyService {
     let cars = [];
 
     if (modelQuery) {
-      // Split words to attempt multi-field search
       const words = modelQuery.split(" ").filter(Boolean);
       const wordRegexes = words.map((w) => new RegExp(escapeRegExp(w), "i"));
 
-      // 1. Try finding cars matching all search words in brand/model/variant
+      // Try finding cars matching all search words in brand/model/variant
       filter.$and = wordRegexes.map((r) => ({
         $or: [{ brand: r }, { model: r }, { variant: r }],
       }));
 
       cars = await Car.find(filter).lean();
 
-      // 2. If no results, fall back to matching any word
+      // Fall back to matching any word if all-words filter returned no results
       if (cars.length === 0 && words.length > 1) {
         delete filter.$and;
         const qRegex = new RegExp(escapeRegExp(modelQuery), "i");
@@ -155,12 +123,6 @@ class AISensyService {
 
     if (!cars || cars.length === 0) {
       return {
-        success: true,
-        matched: false,
-        query: { modelQuery, fuelType, year, selectedPlan },
-        message: `No service plans found for '${modelQuery || "vehicle"}'${
-          fuelType ? " (" + fuelType + ")" : ""
-        }${year ? " " + year : ""}.`,
         whatsapp_text: `❌ Sorry, we couldn't find service plan details for *${
           modelQuery || "your vehicle"
         }* (${fuelType || "Any fuel"}${year ? ", " + year : ""}).\n\nPlease check the spelling or type a different model (e.g. *Honda Amaze 2018*).`,
@@ -187,32 +149,46 @@ class AISensyService {
     const oilNum = oilNumMatch ? parseFloat(oilNumMatch[0]) : null;
     const isStandard3L = oilNum === null || oilNum === 3.0 || oilNum === 3;
 
-    let oilCapacityNotice = "";
-    if (!isStandard3L && rawOilCap) {
-      oilCapacityNotice = `💡 *Note:* Your *${car.brand} ${car.model}* requires *${rawOilCap}* of engine oil. Below is the updated plan price tailored for your vehicle capacity:`;
-    }
-
-    // Determine plan specific highlight if selectedPlan passed
-    let planHighlight = "";
-    if (selectedPlan) {
-      const planLower = selectedPlan.toLowerCase();
-      if (planLower.includes("lite")) {
-        planHighlight = `⭐ *Chosen Plan (Mech Lite):* ${mechLitePrice}`;
-      } else if (planLower.includes("basic")) {
-        planHighlight = `⭐ *Chosen Plan (Mech Basic):* ${mechBasicPrice}`;
-      } else if (planLower.includes("pro")) {
-        planHighlight = `⭐ *Chosen Plan (Mech Pro):* ${mechProPrice}`;
-      }
-    }
-
     const vehicleFullName = `${car.brand} ${car.model} ${car.variant}`.trim();
-    const oilCapText = car.oilCapacity || "Standard";
+    const oilCapText = car.oilCapacity ? `${car.oilCapacity}` : "Standard";
 
     let headerMessage = "";
     if (!isStandard3L && rawOilCap) {
-      headerMessage = `The *${vehicleFullName}* (${car.fuelType || fuelType || "Petrol"}) has an engine oil capacity of *${oilCapText}*.\n\nBased on your vehicle's oil capacity, here is your updated plan pricing:`;
+      headerMessage = `The *${vehicleFullName}* (${car.fuelType || fuelType || "Petrol"}) has an engine oil capacity of *${oilCapText}*.`;
     } else {
       headerMessage = `🚘 *Vehicle:* ${vehicleFullName}\n⛽ *Fuel Type:* ${car.fuelType || fuelType || "Petrol"}\n🛢️ *Engine Oil Capacity:* ${oilCapText}`;
+    }
+
+    // Determine plan display (show ONLY selected plan if specified, otherwise show all 3 plans)
+    let planSection = [];
+    if (selectedPlan) {
+      const planLower = selectedPlan.toLowerCase();
+      let chosenPlanName = "Selected Plan";
+      let chosenPrice = mechBasicPrice;
+
+      if (planLower.includes("lite")) {
+        chosenPlanName = "Mech Lite";
+        chosenPrice = mechLitePrice;
+      } else if (planLower.includes("pro")) {
+        chosenPlanName = "Mech Pro";
+        chosenPrice = mechProPrice;
+      } else if (planLower.includes("basic")) {
+        chosenPlanName = "Mech Basic";
+        chosenPrice = mechBasicPrice;
+      }
+
+      planSection = [
+        `Based on your vehicle's oil capacity, your updated plan price is:`,
+        `⭐ *${chosenPlanName}:* ${chosenPrice}`,
+      ];
+    } else {
+      planSection = [
+        `Based on your vehicle's oil capacity, here is your updated plan pricing:`,
+        `📋 *Plan Pricing for Your Vehicle:*`,
+        `🔹 *Mech Lite:* ${mechLitePrice}`,
+        `🔹 *Mech Basic:* ${mechBasicPrice}`,
+        `🔹 *Mech Pro:* ${mechProPrice}`,
+      ];
     }
 
     const whatsappMessage = [
@@ -220,44 +196,14 @@ class AISensyService {
       ``,
       headerMessage,
       ``,
-      planHighlight ? planHighlight : null,
-      planHighlight ? `` : null,
-      `📋 *Plan Pricing for Your Vehicle:*`,
-      `🔹 *Mech Lite:* ${mechLitePrice}`,
-      `🔹 *Mech Basic:* ${mechBasicPrice}`,
-      `🔹 *Mech Pro:* ${mechProPrice}`,
+      ...planSection,
       ``,
       `Please click *Proceed* below to continue with your booking!`,
     ]
       .filter(Boolean)
       .join("\n");
 
-    const responsePayload = {
-      success: true,
-      matched: true,
-      total_matches: cars.length,
-      query: { modelQuery, fuelType, year, selectedPlan },
-      selected_plan: selectedPlan || "all",
-      is_standard_3l: isStandard3L,
-      oil_capacity_notice: oilCapacityNotice,
-      car: {
-        id: car._id.toString(),
-        brand: car.brand,
-        model: car.model,
-        variant: car.variant,
-        fuelType: car.fuelType,
-        year: car.year,
-        pricingCategory: car.pricingCategory,
-        oilCapacity: car.oilCapacity,
-      },
-      service_plans: {
-        mech_lite: mechLitePrice,
-        mech_basic: mechBasicPrice,
-        mech_pro: mechProPrice,
-        raw_lite: car.mechLite,
-        raw_basic: car.mechBasic,
-        raw_pro: car.mechPro,
-      },
+    return {
       whatsapp_text: whatsappMessage,
       text: whatsappMessage,
       message: whatsappMessage,
@@ -265,13 +211,8 @@ class AISensyService {
         whatsapp_text: whatsappMessage,
         text: whatsappMessage,
         message: whatsappMessage,
-        mech_lite: mechLitePrice,
-        mech_basic: mechBasicPrice,
-        mech_pro: mechProPrice,
       },
     };
-
-    return responsePayload;
   }
 }
 

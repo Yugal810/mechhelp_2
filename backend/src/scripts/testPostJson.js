@@ -1,29 +1,25 @@
-const axios = require("axios");
+const aiSensyService = require("../services/aiSensyService");
+const connectDB = require("../db");
 
-async function testPost() {
-  const url = "https://mechhelp-2.vercel.app/api/aisensy/service-plans";
+async function testCleanOutput() {
+  await connectDB();
 
-  const payload = {
+  console.log("=== Test 1: User Selected Mech Basic Plan ===");
+  const res1 = await aiSensyService.getServicePlans({
     selectedPlan: "Mech Basic",
     fuelType: "Petrol",
+    vname: "Tata Altroz 2023",
+  });
+  console.log(res1.whatsapp_text);
+
+  console.log("\n=== Test 2: User Did Not Select Specific Plan ===");
+  const res2 = await aiSensyService.getServicePlans({
+    fuelType: "Diesel",
     vname: "Maruti Suzuki S Cross 2018",
-  };
+  });
+  console.log(res2.whatsapp_text);
 
-  console.log("🚀 Sending POST Request to Vercel Backend...");
-  console.log("Payload:", JSON.stringify(payload, null, 2));
-
-  try {
-    const response = await axios.post(url, payload, {
-      headers: { "Content-Type": "application/json" },
-    });
-
-    console.log("\n✅ Response Status:", response.status);
-    console.log("\n📦 Response Data:\n", JSON.stringify(response.data, null, 2));
-    console.log("\n📱 WhatsApp Message Output:\n");
-    console.log(response.data.whatsapp_text);
-  } catch (err) {
-    console.error("❌ Error:", err.response ? err.response.data : err.message);
-  }
+  process.exit(0);
 }
 
-testPost();
+testCleanOutput();
