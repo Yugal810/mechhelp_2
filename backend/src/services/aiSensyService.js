@@ -64,6 +64,10 @@ class AISensyService {
       return {
         whatsapp_text:
           "Please provide your vehicle model and year (e.g. *Honda Amaze 2018*).",
+        data: {
+          whatsapp_text:
+            "Please provide your vehicle model and year (e.g. *Honda Amaze 2018*).",
+        },
       };
     }
 
@@ -107,6 +111,10 @@ class AISensyService {
       return {
         whatsapp_text: `Sorry, we couldn't find service plan details for *${modelQuery || "your vehicle"
           }* (${fuelType || "Any fuel"}${year ? ", " + year : ""}).\n\nPlease check the spelling or type a different model (e.g. *Honda Amaze 2018*).`,
+        data: {
+          whatsapp_text: `Sorry, we couldn't find service plan details for *${modelQuery || "your vehicle"
+            }* (${fuelType || "Any fuel"}${year ? ", " + year : ""}).\n\nPlease check the spelling or type a different model (e.g. *Honda Amaze 2018*).`,
+        },
       };
     }
 
@@ -161,6 +169,9 @@ class AISensyService {
 
     return {
       whatsapp_text: whatsappMessage,
+      data: {
+        whatsapp_text: whatsappMessage,
+      },
     };
   }
 
@@ -190,6 +201,9 @@ class AISensyService {
     ) {
       return {
         whatsapp_text: "Please enter your location or address in Nagpur.",
+        data: {
+          whatsapp_text: "Please enter your location or address in Nagpur.",
+        },
       };
     }
 
@@ -205,6 +219,9 @@ class AISensyService {
     if (!nearestList || nearestList.length === 0) {
       return {
         whatsapp_text: `Thank you! We received your address (*${address}*). Our customer service executive will contact you shortly to confirm your booking and assign the nearest garage.`,
+        data: {
+          whatsapp_text: `Thank you! We received your address (*${address}*). Our customer service executive will contact you shortly to confirm your booking and assign the nearest garage.`,
+        },
       };
     }
 
@@ -236,6 +253,12 @@ class AISensyService {
       garage_1: g1,
       garage_2: g2,
       garage_3: g3,
+      data: {
+        whatsapp_text: whatsappMessage,
+        garage_1: g1,
+        garage_2: g2,
+        garage_3: g3,
+      },
     };
   }
 }
