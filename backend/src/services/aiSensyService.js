@@ -134,16 +134,19 @@ class AISensyService {
       headerMessage = `*Vehicle:* ${vehicleFullName}\n*Fuel Type:* ${car.fuelType || fuelType || "Petrol"}\n*Engine Oil Capacity:* ${oilCapText}`;
     }
 
+    const mechLitePrice = formatPrice(car.mechLite);
+    const mechBasicPrice = formatPrice(car.mechBasic);
+    const mechProPrice = formatPrice(car.mechPro);
+
     const planLower = String(selectedPlan).toLowerCase();
-    let chosenPlanName = "Mech Basic";
-    let rawPriceVal = car.mechBasic;
+    let chosenPlanLine = null;
 
     if (planLower.includes("lite")) {
-      chosenPlanName = "Mech Lite";
-      rawPriceVal = car.mechLite;
+      chosenPlanLine = `*Chosen Plan (Mech Lite):* ${mechLitePrice}`;
     } else if (planLower.includes("pro")) {
-      chosenPlanName = "Mech Pro";
-      rawPriceVal = car.mechPro;
+      chosenPlanLine = `*Chosen Plan (Mech Pro):* ${mechProPrice}`;
+    } else if (planLower.includes("basic")) {
+      chosenPlanLine = `*Chosen Plan (Mech Basic):* ${mechBasicPrice}`;
     }
 
     const whatsappMessage = [
@@ -151,8 +154,13 @@ class AISensyService {
       ``,
       headerMessage,
       ``,
-      `Based on your vehicle's oil capacity, your updated plan price is:`,
-      `*${chosenPlanName}:* ${formatPrice(rawPriceVal)}`,
+      `Based on your vehicle's oil capacity, here is your updated plan pricing:`,
+      chosenPlanLine ? chosenPlanLine : null,
+      chosenPlanLine ? `` : null,
+      `Plan Pricing for Your Vehicle:`,
+      `*Mech Lite:* ${mechLitePrice}`,
+      `*Mech Basic:* ${mechBasicPrice}`,
+      `*Mech Pro:* ${mechProPrice}`,
       ``,
       `Please click *Proceed* below to continue with your booking!`,
     ]
