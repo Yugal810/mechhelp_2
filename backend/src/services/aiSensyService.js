@@ -180,7 +180,17 @@ class AISensyService {
       "";
     address = String(address).replace(/[\{\}\$]/g, "").trim();
 
-    if (!address) {
+    const addressLower = address.toLowerCase();
+    if (
+      !address ||
+      addressLower === "address" ||
+      addressLower === "location" ||
+      addressLower === "addr" ||
+      addressLower === "customer_address" ||
+      addressLower === "delivery_address" ||
+      addressLower.includes("{{") ||
+      addressLower.includes("}}")
+    ) {
       return {
         whatsapp_text: "⚠️ Please enter your location or address in Nagpur.",
         data: {
