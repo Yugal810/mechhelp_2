@@ -123,9 +123,8 @@ class AISensyService {
 
     if (!cars || cars.length === 0) {
       return {
-        whatsapp_text: `❌ Sorry, we couldn't find service plan details for *${
-          modelQuery || "your vehicle"
-        }* (${fuelType || "Any fuel"}${year ? ", " + year : ""}).\n\nPlease check the spelling or type a different model (e.g. *Honda Amaze 2018*).`,
+        whatsapp_text: `❌ Sorry, we couldn't find service plan details for *${modelQuery || "your vehicle"
+          }* (${fuelType || "Any fuel"}${year ? ", " + year : ""}).\n\nPlease check the spelling or type a different model (e.g. *Honda Amaze 2018*).`,
       };
     }
 
@@ -139,11 +138,6 @@ class AISensyService {
       return `₹${parseInt(cleaned, 10).toLocaleString("en-IN")}`;
     };
 
-    const mechLitePrice = formatPrice(car.mechLite);
-    const mechBasicPrice = formatPrice(car.mechBasic);
-    const mechProPrice = formatPrice(car.mechPro);
-
-    // Analyze Oil Capacity
     const rawOilCap = String(car.oilCapacity || "").trim();
     const oilNumMatch = rawOilCap.match(/\d+(\.\d+)?/);
     const oilNum = oilNumMatch ? parseFloat(oilNumMatch[0]) : null;
@@ -159,44 +153,25 @@ class AISensyService {
       headerMessage = `🚘 *Vehicle:* ${vehicleFullName}\n⛽ *Fuel Type:* ${car.fuelType || fuelType || "Petrol"}\n🛢️ *Engine Oil Capacity:* ${oilCapText}`;
     }
 
-    // Determine plan display (show ONLY selected plan if specified, otherwise show all 3 plans)
-    let planSection = [];
-    if (selectedPlan) {
-      const planLower = selectedPlan.toLowerCase();
-      let chosenPlanName = "Selected Plan";
-      let chosenPrice = mechBasicPrice;
+    const planLower = String(selectedPlan).toLowerCase();
+    let chosenPlanName = "Mech Basic";
+    let rawPriceVal = car.mechBasic;
 
-      if (planLower.includes("lite")) {
-        chosenPlanName = "Mech Lite";
-        chosenPrice = mechLitePrice;
-      } else if (planLower.includes("pro")) {
-        chosenPlanName = "Mech Pro";
-        chosenPrice = mechProPrice;
-      } else if (planLower.includes("basic")) {
-        chosenPlanName = "Mech Basic";
-        chosenPrice = mechBasicPrice;
-      }
-
-      planSection = [
-        `Based on your vehicle's oil capacity, your updated plan price is:`,
-        `⭐ *${chosenPlanName}:* ${chosenPrice}`,
-      ];
-    } else {
-      planSection = [
-        `Based on your vehicle's oil capacity, here is your updated plan pricing:`,
-        `📋 *Plan Pricing for Your Vehicle:*`,
-        `🔹 *Mech Lite:* ${mechLitePrice}`,
-        `🔹 *Mech Basic:* ${mechBasicPrice}`,
-        `🔹 *Mech Pro:* ${mechProPrice}`,
-      ];
+    if (planLower.includes("lite")) {
+      chosenPlanName = "Mech Lite";
+      rawPriceVal = car.mechLite;
+    } else if (planLower.includes("pro")) {
+      chosenPlanName = "Mech Pro";
+      rawPriceVal = car.mechPro;
     }
 
     const whatsappMessage = [
-      `🚗 *MECHHELP Service Quote*`,
+      `*MECHHELP Service Quote*`,
       ``,
       headerMessage,
       ``,
-      ...planSection,
+      `Based on your vehicle's oil capacity, your updated plan price is:`,
+      `⭐ *${chosenPlanName}:* ${formatPrice(rawPriceVal)}`,
       ``,
       `Please click *Proceed* below to continue with your booking!`,
     ]
