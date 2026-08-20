@@ -64,10 +64,6 @@ class AISensyService {
       return {
         whatsapp_text:
           "Please provide your vehicle model and year (e.g. *Honda Amaze 2018*).",
-        data: {
-          whatsapp_text:
-            "Please provide your vehicle model and year (e.g. *Honda Amaze 2018*).",
-        },
       };
     }
 
@@ -111,10 +107,6 @@ class AISensyService {
       return {
         whatsapp_text: `Sorry, we couldn't find service plan details for *${modelQuery || "your vehicle"
           }* (${fuelType || "Any fuel"}${year ? ", " + year : ""}).\n\nPlease check the spelling or type a different model (e.g. *Honda Amaze 2018*).`,
-        data: {
-          whatsapp_text: `Sorry, we couldn't find service plan details for *${modelQuery || "your vehicle"
-            }* (${fuelType || "Any fuel"}${year ? ", " + year : ""}).\n\nPlease check the spelling or type a different model (e.g. *Honda Amaze 2018*).`,
-        },
       };
     }
 
@@ -169,9 +161,6 @@ class AISensyService {
 
     return {
       whatsapp_text: whatsappMessage,
-      data: {
-        whatsapp_text: whatsappMessage,
-      },
     };
   }
 
@@ -179,32 +168,24 @@ class AISensyService {
    * Fetch top 3 nearest garages for AiSensy WhatsApp bot based on user location/address
    */
   async getNearestGarages(params = {}) {
-    let address =
+    let rawAddress =
       params.address ||
       params.location ||
       params.vname ||
       params.query ||
       params.c1 ||
       "";
-    address = String(address).replace(/[\{\}\$]/g, "").trim();
+    rawAddress = String(rawAddress).trim();
 
-    const addressLower = address.toLowerCase();
-    if (
-      !address ||
-      addressLower === "address" ||
-      addressLower === "location" ||
-      addressLower === "addr" ||
-      addressLower === "customer_address" ||
-      addressLower === "delivery_address" ||
-      addressLower.includes("{{") ||
-      addressLower.includes("}}")
-    ) {
-      return {
-        whatsapp_text: "Please enter your location or address in Nagpur.",
-        data: {
-          whatsapp_text: "Please enter your location or address in Nagpur.",
-        },
-      };
+    // Strip curly braces / dollar signs from template tags
+    let address = rawAddress
+      .replace(/[\{\}\$]/g, "")
+      .trim();
+
+    // If address is empty or unreplaced test string, default to "Nagpur" for editor modal testing
+    const lower = address.toLowerCase();
+    if (!address || ["address", "location", "c1", "addr", "customer_address"].includes(lower)) {
+      address = "Nagpur";
     }
 
     let nearestList = [];
@@ -214,15 +195,6 @@ class AISensyService {
       console.warn("Distance service geocoding warning:", err.message);
       const allGarages = await distanceService.getGarages();
       nearestList = allGarages.filter((g) => g.is_enabled);
-    }
-
-    if (!nearestList || nearestList.length === 0) {
-      return {
-        whatsapp_text: `Thank you! We received your address (*${address}*). Our customer service executive will contact you shortly to confirm your booking and assign the nearest garage.`,
-        data: {
-          whatsapp_text: `Thank you! We received your address (*${address}*). Our customer service executive will contact you shortly to confirm your booking and assign the nearest garage.`,
-        },
-      };
     }
 
     const top3 = nearestList.slice(0, 3);
@@ -253,12 +225,6 @@ class AISensyService {
       garage_1: g1,
       garage_2: g2,
       garage_3: g3,
-      data: {
-        whatsapp_text: whatsappMessage,
-        garage_1: g1,
-        garage_2: g2,
-        garage_3: g3,
-      },
     };
   }
 }
