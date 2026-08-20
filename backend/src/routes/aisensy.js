@@ -37,11 +37,7 @@ async function handleServicePlans(req, res) {
     console.error("Error in AiSensy service-plans endpoint:", err.message);
     res.status(500).json({
       whatsapp_text:
-        "⚠️ Sorry, an error occurred while fetching service plans. Please try again later.",
-      data: {
-        whatsapp_text:
-          "⚠️ Sorry, an error occurred while fetching service plans. Please try again later.",
-      },
+        "Sorry, an error occurred while fetching service plans. Please try again later.",
     });
   }
 }
@@ -59,11 +55,7 @@ async function handleNearestGarages(req, res) {
     console.error("Error in AiSensy nearest-garages endpoint:", err.message);
     res.status(500).json({
       whatsapp_text:
-        "⚠️ Sorry, an error occurred while calculating nearest garages. Our team will contact you shortly.",
-      data: {
-        whatsapp_text:
-          "⚠️ Sorry, an error occurred while calculating nearest garages. Our team will contact you shortly.",
-      },
+        "Sorry, an error occurred while calculating nearest garages. Our team will contact you shortly.",
     });
   }
 }

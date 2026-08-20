@@ -161,9 +161,6 @@ class AISensyService {
 
     return {
       whatsapp_text: whatsappMessage,
-      data: {
-        whatsapp_text: whatsappMessage,
-      },
     };
   }
 
@@ -193,9 +190,6 @@ class AISensyService {
     ) {
       return {
         whatsapp_text: "Please enter your location or address in Nagpur.",
-        data: {
-          whatsapp_text: "Please enter your location or address in Nagpur.",
-        },
       };
     }
 
@@ -211,9 +205,6 @@ class AISensyService {
     if (!nearestList || nearestList.length === 0) {
       return {
         whatsapp_text: `Thank you! We received your address (*${address}*). Our customer service executive will contact you shortly to confirm your booking and assign the nearest garage.`,
-        data: {
-          whatsapp_text: `Thank you! We received your address (*${address}*). Our customer service executive will contact you shortly to confirm your booking and assign the nearest garage.`,
-        },
       };
     }
 
@@ -238,9 +229,6 @@ class AISensyService {
 
     return {
       whatsapp_text: whatsappMessage,
-      data: {
-        whatsapp_text: whatsappMessage,
-      },
     };
   }
 }
