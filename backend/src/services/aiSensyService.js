@@ -163,13 +163,7 @@ class AISensyService {
 
     return {
       whatsapp_text: whatsappMessage,
-      ">3.5": isAboveStr,
-      "is_above_3_5": isAboveStr,
-      data: {
-        whatsapp_text: whatsappMessage,
-        ">3.5": isAboveStr,
-        "is_above_3_5": isAboveStr,
-      },
+      is_above_3_5: isAboveStr,
     };
   }
 
