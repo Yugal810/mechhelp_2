@@ -227,8 +227,15 @@ class AISensyService {
       `Our customer support executive will call you shortly to confirm your pickup time!`,
     ].join("\n");
 
+    const g1 = top3[0] ? top3[0].garage_name.substring(0, 20) : "";
+    const g2 = top3[1] ? top3[1].garage_name.substring(0, 20) : "";
+    const g3 = top3[2] ? top3[2].garage_name.substring(0, 20) : "";
+
     return {
       whatsapp_text: whatsappMessage,
+      garage_1: g1,
+      garage_2: g2,
+      garage_3: g3,
     };
   }
 }
