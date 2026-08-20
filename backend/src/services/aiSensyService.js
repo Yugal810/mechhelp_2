@@ -1,5 +1,6 @@
 const Car = require("../models/Car");
 const carService = require("./carService");
+const distanceService = require("./distanceService");
 
 function escapeRegExp(str) {
   return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -14,23 +15,18 @@ class AISensyService {
       params = { vname: params };
     }
 
-    let rawQuery =
-      params.vname ||
-      params.vehicle ||
-      params.query ||
-      "";
+    let rawQuery = params.vname || params.vehicle || params.query || "";
     let rawFuel = params.fuelType || params.fuel_type || params.fuel || "";
-    let rawYear = params.year || params.custom_year || "";
-    let selectedPlan =
-      params.selectedPlan || params.selected_plan || params.plan || "";
+    let rawYear = params.year || "";
+    let selectedPlan = params.selectedPlan || params.selected_plan || params.plan || "";
 
     // Clean any leftover {{ }} or $ template wrappers
-    rawQuery = String(rawQuery).replace(/\{\{/g, "").replace(/\}\}/g, "").replace(/\$/g, "").trim();
-    rawFuel = String(rawFuel).replace(/\{\{/g, "").replace(/\}\}/g, "").replace(/\$/g, "").trim();
-    rawYear = String(rawYear).replace(/\{\{/g, "").replace(/\}\}/g, "").replace(/\$/g, "").trim();
-    selectedPlan = String(selectedPlan).replace(/\{\{/g, "").replace(/\}\}/g, "").replace(/\$/g, "").trim();
+    rawQuery = String(rawQuery).replace(/[\{\}\$]/g, "").trim();
+    rawFuel = String(rawFuel).replace(/[\{\}\$]/g, "").trim();
+    rawYear = String(rawYear).replace(/[\{\}\$]/g, "").trim();
+    selectedPlan = String(selectedPlan).replace(/[\{\}\$]/g, "").trim();
 
-    // 1. Extract Fuel Type if present in query string
+    // Extract Fuel Type if present in query string
     if (!rawFuel) {
       if (/\bpetrol\b/i.test(rawQuery)) {
         rawFuel = "Petrol";
@@ -38,16 +34,10 @@ class AISensyService {
       } else if (/\bdiesel\b/i.test(rawQuery)) {
         rawFuel = "Diesel";
         rawQuery = rawQuery.replace(/\bdiesel\b/gi, "").trim();
-      } else if (/\bcng\b/i.test(rawQuery)) {
-        rawFuel = "CNG";
-        rawQuery = rawQuery.replace(/\bcng\b/gi, "").trim();
-      } else if (/\belectric\b/i.test(rawQuery)) {
-        rawFuel = "Electric";
-        rawQuery = rawQuery.replace(/\belectric\b/gi, "").trim();
       }
     }
 
-    // 2. Extract 4-digit year from query string if not explicitly passed
+    // Extract 4-digit year from query string if not explicitly passed
     if (!rawYear) {
       const yearMatch = rawQuery.match(/\b(19\d{2}|20\d{2})\b/);
       if (yearMatch) {
@@ -56,11 +46,8 @@ class AISensyService {
       }
     }
 
-    // Clean up extra spaces in query
-    let modelQuery = rawQuery.replace(/\s+/g, " ").trim();
-
     return {
-      modelQuery,
+      modelQuery: rawQuery.replace(/\s+/g, " ").trim(),
       fuelType: rawFuel,
       year: rawYear,
       selectedPlan,
@@ -82,25 +69,21 @@ class AISensyService {
 
     // Search cars matching inputs
     const filter = {};
-
     if (fuelType) {
       filter.fuelType = { $regex: new RegExp(`^${escapeRegExp(fuelType)}`, "i") };
     }
 
     let cars = [];
-
     if (modelQuery) {
       const words = modelQuery.split(" ").filter(Boolean);
       const wordRegexes = words.map((w) => new RegExp(escapeRegExp(w), "i"));
 
-      // Try finding cars matching all search words in brand/model/variant
       filter.$and = wordRegexes.map((r) => ({
         $or: [{ brand: r }, { model: r }, { variant: r }],
       }));
 
       cars = await Car.find(filter).lean();
 
-      // Fall back to matching any word if all-words filter returned no results
       if (cars.length === 0 && words.length > 1) {
         delete filter.$and;
         const qRegex = new RegExp(escapeRegExp(modelQuery), "i");
@@ -111,7 +94,6 @@ class AISensyService {
       cars = await Car.find(filter).lean();
     }
 
-    // Filter by year if year was provided
     if (year && cars.length > 0) {
       const yearFiltered = cars.filter((car) =>
         carService._rowMatchesYearFilter(car.year, null, year)
@@ -128,7 +110,6 @@ class AISensyService {
       };
     }
 
-    // Pick best match (first matching car record)
     const car = cars[0];
 
     const formatPrice = (val) => {
@@ -180,12 +161,80 @@ class AISensyService {
 
     return {
       whatsapp_text: whatsappMessage,
-      text: whatsappMessage,
-      message: whatsappMessage,
       data: {
         whatsapp_text: whatsappMessage,
-        text: whatsappMessage,
-        message: whatsappMessage,
+      },
+    };
+  }
+
+  /**
+   * Fetch top 3 nearest garages for AiSensy WhatsApp bot based on user location/address
+   */
+  async getNearestGarages(params = {}) {
+    let address =
+      params.address ||
+      params.location ||
+      params.vname ||
+      params.query ||
+      params.c1 ||
+      "";
+    address = String(address).replace(/[\{\}\$]/g, "").trim();
+
+    if (!address) {
+      return {
+        whatsapp_text: "⚠️ Please enter your location or address in Nagpur.",
+        data: {
+          whatsapp_text: "⚠️ Please enter your location or address in Nagpur.",
+        },
+      };
+    }
+
+    let nearestList = [];
+    try {
+      nearestList = await distanceService.getNearestGarages(address);
+    } catch (err) {
+      console.warn("Distance service geocoding warning:", err.message);
+      const allGarages = await distanceService.getGarages();
+      nearestList = allGarages.filter((g) => g.is_enabled);
+    }
+
+    if (!nearestList || nearestList.length === 0) {
+      return {
+        whatsapp_text: `📍 Thank you! We received your address (*${address}*). Our customer service executive will contact you shortly to confirm your booking and assign the nearest garage.`,
+        data: {
+          whatsapp_text: `📍 Thank you! We received your address (*${address}*). Our customer service executive will contact you shortly to confirm your booking and assign the nearest garage.`,
+        },
+      };
+    }
+
+    const top3 = nearestList.slice(0, 3);
+    const garageLines = top3.map((g, idx) => {
+      const numEmoji = idx === 0 ? "1️⃣" : idx === 1 ? "2️⃣" : "3️⃣";
+      const distStr = g.distance_km || g.distance || "Nearby";
+      return [
+        `${numEmoji} *${g.garage_name}*`,
+        `📍 Address: ${g.address || "Nagpur"}`,
+        g.contact ? `📞 Contact: ${g.contact}` : null,
+        `🚗 Distance: ${distStr}`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+    });
+
+    const whatsappMessage = [
+      `🔧 *Nearest MECHHELP Partner Garages*`,
+      ``,
+      `Here are the top 3 partner garages closest to your location (*${address}*):`,
+      ``,
+      garageLines.join("\n\n"),
+      ``,
+      `Our customer support executive will call you shortly to confirm your pickup time!`,
+    ].join("\n");
+
+    return {
+      whatsapp_text: whatsappMessage,
+      data: {
+        whatsapp_text: whatsappMessage,
       },
     };
   }
