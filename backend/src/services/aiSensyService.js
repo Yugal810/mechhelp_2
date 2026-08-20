@@ -122,13 +122,13 @@ class AISensyService {
     const rawOilCap = String(car.oilCapacity || "").trim();
     const oilNumMatch = rawOilCap.match(/\d+(\.\d+)?/);
     const oilNum = oilNumMatch ? parseFloat(oilNumMatch[0]) : null;
-    const isStandard3L = oilNum === null || oilNum === 3.0 || oilNum === 3;
+    const isAbove3_5 = oilNum !== null && oilNum >= 3.5;
 
     const vehicleFullName = `${car.brand} ${car.model} ${car.variant}`.trim();
     const oilCapText = car.oilCapacity ? `${car.oilCapacity}` : "Standard";
 
     let headerMessage = "";
-    if (!isStandard3L && rawOilCap) {
+    if (isAbove3_5 && rawOilCap) {
       headerMessage = `The *${vehicleFullName}* (${car.fuelType || fuelType || "Petrol"}) has an engine oil capacity of *${oilCapText}*.`;
     } else {
       headerMessage = `*Vehicle:* ${vehicleFullName}\n*Fuel Type:* ${car.fuelType || fuelType || "Petrol"}\n*Engine Oil Capacity:* ${oilCapText}`;
@@ -159,8 +159,17 @@ class AISensyService {
       .filter(Boolean)
       .join("\n");
 
+    const isAboveStr = isAbove3_5 ? "True" : "False";
+
     return {
       whatsapp_text: whatsappMessage,
+      ">3.5": isAboveStr,
+      "is_above_3_5": isAboveStr,
+      data: {
+        whatsapp_text: whatsappMessage,
+        ">3.5": isAboveStr,
+        "is_above_3_5": isAboveStr,
+      },
     };
   }
 
