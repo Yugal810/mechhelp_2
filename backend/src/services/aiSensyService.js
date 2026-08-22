@@ -184,11 +184,38 @@ class AISensyService {
       .filter(Boolean)
       .join("\n");
 
+    let chosenPlanName = "Mech Basic";
+    let chosenPrice = mechBasicPrice;
+
+    if (planLower.includes("lite")) {
+      chosenPlanName = "Mech Lite";
+      chosenPrice = mechLitePrice;
+    } else if (planLower.includes("pro")) {
+      chosenPlanName = "Mech Pro";
+      chosenPrice = mechProPrice;
+    }
+
+    const confirmationMessage = [
+      `*MECHHELP Booking Summary*`,
+      ``,
+      `*Vehicle:* ${vehicleFullName}`,
+      `*Fuel Type:* ${car.fuelType || fuelType || "Petrol"}`,
+      `*Engine Oil Capacity:* ${oilCapText}`,
+      `*Selected Plan:* ${chosenPlanName}`,
+      `*Total Price:* ${chosenPrice}`,
+    ].join("\n");
+
     const isAboveStr = isAbove3_5 ? "True" : "False";
 
     return {
       whatsapp_text: whatsappMessage,
+      confirmation_text: confirmationMessage,
       is_above_3_5: isAboveStr,
+      data: {
+        whatsapp_text: whatsappMessage,
+        confirmation_text: confirmationMessage,
+        is_above_3_5: isAboveStr,
+      },
     };
   }
 
