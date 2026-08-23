@@ -223,7 +223,6 @@ class AISensyService {
       whatsapp_text: whatsappMessage,
       confirmation_text: confirmationMessage,
       is_above_3_7: isAboveStr,
-      is_above_3_5: isAboveStr,
     };
   }
 
