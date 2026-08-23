@@ -62,6 +62,7 @@ class AISensyService {
 
     if (!modelQuery && !fuelType && !year) {
       return {
+        found: false,
         whatsapp_text:
           "Please provide your vehicle model and year (e.g. *Honda Amaze 2018*).",
       };
@@ -105,6 +106,7 @@ class AISensyService {
 
     if (!cars || cars.length === 0) {
       return {
+        found: false,
         whatsapp_text: `Sorry, we couldn't find service plan details for *${modelQuery || "your vehicle"
           }* (${fuelType || "Any fuel"}${year ? ", " + year : ""}).\n\nPlease check the spelling or type a different model (e.g. *Honda Amaze 2018*).`,
       };
@@ -125,7 +127,12 @@ class AISensyService {
     const isAbove3_5 = oilNum !== null && oilNum >= 3.5;
 
     const vehicleFullName = `${car.brand} ${car.model} ${car.variant}`.trim();
-    const oilCapText = car.oilCapacity ? `${car.oilCapacity}` : "Standard";
+    let rawOilCapVal = car.oilCapacity ? String(car.oilCapacity).trim() : "";
+    let oilCapText = rawOilCapVal;
+    if (rawOilCapVal && !/l$/i.test(rawOilCapVal)) {
+      oilCapText = `${rawOilCapVal}L`;
+    }
+    if (!oilCapText) oilCapText = "Standard";
 
     let headerMessage = "";
     if (isAbove3_5 && rawOilCap) {
@@ -168,17 +175,22 @@ class AISensyService {
       ];
     }
 
+    const divider = "━━━━━━━━━━━━━━━━━━━━";
+
     const whatsappMessage = [
       `*MECHHELP Service Quote*`,
       ``,
       headerMessage,
       ``,
       `Based on your vehicle's oil capacity, here is your updated plan pricing:`,
+      divider,
       chosenPlanLine ? chosenPlanLine : null,
       chosenPlanLine ? `` : null,
+      chosenPlanLine ? divider : null,
       otherPlansLines.length > 0 ? `More Plan Pricing for Your Vehicle:` : null,
       ...otherPlansLines,
       ``,
+      divider,
       `Please click *Proceed* below to continue with your chosen plan or select a different plan!`,
     ]
       .filter(Boolean)
@@ -200,7 +212,6 @@ class AISensyService {
       ``,
       `*Vehicle:* ${vehicleFullName}`,
       `*Fuel Type:* ${car.fuelType || fuelType || "Petrol"}`,
-      `*Engine Oil Capacity:* ${oilCapText}`,
       `*Selected Plan:* ${chosenPlanName}`,
       `*Total Price:* ${chosenPrice}`,
     ].join("\n");
@@ -208,6 +219,7 @@ class AISensyService {
     const isAboveStr = isAbove3_5 ? "True" : "False";
 
     return {
+      found: true,
       whatsapp_text: whatsappMessage,
       confirmation_text: confirmationMessage,
       is_above_3_5: isAboveStr,

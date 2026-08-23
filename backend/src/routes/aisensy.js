@@ -32,10 +32,14 @@ async function handleServicePlans(req, res) {
     const params = extractParams(req);
     console.log("📥 AiSensy Service Plans Request Params:", JSON.stringify(params));
     const result = await aiSensyService.getServicePlans(params);
-    res.json(result);
+    if (result.found === false) {
+      return res.status(404).json(result);
+    }
+    return res.status(200).json(result);
   } catch (err) {
     console.error("Error in AiSensy service-plans endpoint:", err.message);
     res.status(500).json({
+      found: false,
       whatsapp_text:
         "Sorry, an error occurred while fetching service plans. Please try again later.",
     });
