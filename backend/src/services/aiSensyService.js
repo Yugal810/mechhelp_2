@@ -124,7 +124,7 @@ class AISensyService {
     const rawOilCap = String(car.oilCapacity || "").trim();
     const oilNumMatch = rawOilCap.match(/\d+(\.\d+)?/);
     const oilNum = oilNumMatch ? parseFloat(oilNumMatch[0]) : null;
-    const isAbove3_5 = oilNum !== null && oilNum >= 3.5;
+    const isAbove3_7 = oilNum !== null && oilNum >= 3.7;
 
     const vehicleFullName = `${car.brand} ${car.model} ${car.variant}`.trim();
     let rawOilCapVal = car.oilCapacity ? String(car.oilCapacity).trim() : "";
@@ -135,7 +135,7 @@ class AISensyService {
     if (!oilCapText) oilCapText = "Standard";
 
     let headerMessage = "";
-    if (isAbove3_5 && rawOilCap) {
+    if (isAbove3_7 && rawOilCap) {
       headerMessage = `The *${vehicleFullName}* (${car.fuelType || fuelType || "Petrol"}) has an engine oil capacity of *${oilCapText}*.`;
     } else {
       headerMessage = `*Vehicle:* ${vehicleFullName}\n*Fuel Type:* ${car.fuelType || fuelType || "Petrol"}\n*Engine Oil Capacity:* ${oilCapText}`;
@@ -216,12 +216,13 @@ class AISensyService {
       `*Total Price:* ${chosenPrice}`,
     ].join("\n");
 
-    const isAboveStr = isAbove3_5 ? "True" : "False";
+    const isAboveStr = isAbove3_7 ? "True" : "False";
 
     return {
       found: true,
       whatsapp_text: whatsappMessage,
       confirmation_text: confirmationMessage,
+      is_above_3_7: isAboveStr,
       is_above_3_5: isAboveStr,
     };
   }
