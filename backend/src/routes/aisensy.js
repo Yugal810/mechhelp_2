@@ -35,6 +35,9 @@ async function handleServicePlans(req, res) {
     if (result.found === false) {
       return res.status(404).json(result);
     }
+    if (result.is_bs6 === "True") {
+      return res.status(201).json(result);
+    }
     return res.status(200).json(result);
   } catch (err) {
     console.error("Error in AiSensy service-plans endpoint:", err.message);
