@@ -205,21 +205,57 @@ class AISensyService {
     }
 
     const divider = "━━━━━━━━━━━━━━━━━━━━";
+    let whatsappMessage = "";
 
-    const whatsappMessage = [
-      `*MECHHELP Service Quote*`,
-      headerMessage,
-      `Based on your vehicle's oil capacity, here is your updated plan pricing:`,
-      divider,
-      chosenPlanLine ? chosenPlanLine : null,
-      divider,
-      otherPlansLines.length > 0 ? `More Plan Pricing for Your Vehicle:` : null,
-      ...otherPlansLines,
-      divider,
-      `Please click *Proceed* below to continue with your chosen plan or select a different plan!`,
-    ]
-      .filter(Boolean)
-      .join("\n");
+    if (isAbove3_7) {
+      let chosenPlanHighlight = `💰 *Mech Basic - ${mechBasicPrice}*`;
+      let otherOptionsList = [
+        `Mech Lite - ${mechLitePrice}`,
+        `Mech Pro - ${mechProPrice}`,
+      ];
+
+      if (planLower.includes("lite")) {
+        chosenPlanHighlight = `💰 *Mech Lite - ${mechLitePrice}*`;
+        otherOptionsList = [
+          `Mech Basic - ${mechBasicPrice}`,
+          `Mech Pro - ${mechProPrice}`,
+        ];
+      } else if (planLower.includes("pro")) {
+        chosenPlanHighlight = `💰 *Mech Pro - ${mechProPrice}*`;
+        otherOptionsList = [
+          `Mech Lite - ${mechLitePrice}`,
+          `Mech Basic - ${mechBasicPrice}`,
+        ];
+      }
+
+      whatsappMessage = [
+        `⚠️ *Pricing Revised – MECHHELP*`,
+        ``,
+        `Your ${fullVehicleNameWithYear} (${car.fuelType || fuelType || "Petrol"}) needs *${oilCapText}* engine oil — a bit more than our standard 3.6L plans, so pricing is adjusted accordingly.`,
+        ``,
+        chosenPlanHighlight,
+        ``,
+        `Other options:`,
+        ...otherOptionsList,
+        ``,
+        `Choose an option below 👇`,
+      ].join("\n");
+    } else {
+      whatsappMessage = [
+        `*MECHHELP Service Quote*`,
+        headerMessage,
+        `Based on your vehicle's oil capacity, here is your updated plan pricing:`,
+        divider,
+        chosenPlanLine ? chosenPlanLine : null,
+        divider,
+        otherPlansLines.length > 0 ? `More Plan Pricing for Your Vehicle:` : null,
+        ...otherPlansLines,
+        divider,
+        `Please click *Proceed* below to continue with your chosen plan or select a different plan!`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+    }
 
     let chosenPlanName = "Mech Basic";
     let chosenPrice = mechBasicPrice;
