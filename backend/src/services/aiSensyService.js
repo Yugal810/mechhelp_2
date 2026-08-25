@@ -104,6 +104,26 @@ class AISensyService {
       }
     }
 
+    if (cars.length > 1 && modelQuery) {
+      const qLower = modelQuery.toLowerCase().trim();
+      cars.sort((a, b) => {
+        const aModel = String(a.model || "").toLowerCase().trim();
+        const bModel = String(b.model || "").toLowerCase().trim();
+
+        const aExact = aModel === qLower;
+        const bExact = bModel === qLower;
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+
+        const aStarts = aModel.startsWith(qLower);
+        const bStarts = bModel.startsWith(qLower);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+
+        return aModel.length - bModel.length;
+      });
+    }
+
     if (!cars || cars.length === 0) {
       return {
         found: false,
@@ -126,7 +146,12 @@ class AISensyService {
     const oilNum = oilNumMatch ? parseFloat(oilNumMatch[0]) : null;
     const isAbove3_7 = oilNum !== null && oilNum >= 3.7;
 
+    const pricingCat = String(car.pricingCategory || "").toUpperCase().trim();
+    const isBS6 = pricingCat.includes("BS6") || rawOilCap.toUpperCase().includes("BS6");
+
     const vehicleFullName = `${car.brand} ${car.model} ${car.variant}`.trim();
+    const fullVehicleNameWithYear = year ? `${vehicleFullName} ${year}` : vehicleFullName;
+
     let rawOilCapVal = car.oilCapacity ? String(car.oilCapacity).trim() : "";
     let oilCapText = rawOilCapVal;
     if (rawOilCapVal && !/l$/i.test(rawOilCapVal)) {
@@ -134,11 +159,15 @@ class AISensyService {
     }
     if (!oilCapText) oilCapText = "Standard";
 
+    if (isBS6 && !oilCapText.toUpperCase().includes("BS6")) {
+      oilCapText = `${oilCapText} BS6`;
+    }
+
     let headerMessage = "";
     if (isAbove3_7 && rawOilCap) {
-      headerMessage = `The *${vehicleFullName}* (${car.fuelType || fuelType || "Petrol"}) has an engine oil capacity of *${oilCapText}*.`;
+      headerMessage = `The *${fullVehicleNameWithYear}* (${car.fuelType || fuelType || "Petrol"}) has an engine oil capacity of *${oilCapText}*.`;
     } else {
-      headerMessage = `*Vehicle:* ${vehicleFullName}\n*Fuel Type:* ${car.fuelType || fuelType || "Petrol"}\n*Engine Oil Capacity:* ${oilCapText}`;
+      headerMessage = `*Vehicle:* ${fullVehicleNameWithYear}\n*Fuel Type:* ${car.fuelType || fuelType || "Petrol"}\n*Engine Oil Capacity:* ${oilCapText}`;
     }
 
     const mechLitePrice = formatPrice(car.mechLite);
@@ -179,17 +208,13 @@ class AISensyService {
 
     const whatsappMessage = [
       `*MECHHELP Service Quote*`,
-      ``,
       headerMessage,
-      ``,
       `Based on your vehicle's oil capacity, here is your updated plan pricing:`,
       divider,
       chosenPlanLine ? chosenPlanLine : null,
-      chosenPlanLine ? `` : null,
-      chosenPlanLine ? divider : null,
+      divider,
       otherPlansLines.length > 0 ? `More Plan Pricing for Your Vehicle:` : null,
       ...otherPlansLines,
-      ``,
       divider,
       `Please click *Proceed* below to continue with your chosen plan or select a different plan!`,
     ]
@@ -208,21 +233,22 @@ class AISensyService {
     }
 
     const confirmationMessage = [
-      `*MECHHELP Booking Summary*`,
+      `*✅ Booking Confirmed - MECHHELP*`,
       ``,
-      `*Vehicle:* ${vehicleFullName}`,
-      `*Fuel Type:* ${car.fuelType || fuelType || "Petrol"}`,
-      `*Selected Plan:* ${chosenPlanName}`,
-      `*Total Price:* ${chosenPrice}`,
+      `🚗 Booked For - *${fullVehicleNameWithYear} (${car.fuelType || fuelType || "Petrol"})*`,
+      `🔧 Plan Selected - *${chosenPlanName}*`,
+      `💰 Final Price - *${chosenPrice}*`,
     ].join("\n");
 
     const isAboveStr = isAbove3_7 ? "True" : "False";
+    const isBS6Str = isBS6 ? "True" : "False";
 
     return {
       found: true,
       whatsapp_text: whatsappMessage,
       confirmation_text: confirmationMessage,
       is_above_3_7: isAboveStr,
+      is_bs6: isBS6Str,
     };
   }
 

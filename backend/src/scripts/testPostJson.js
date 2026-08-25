@@ -1,17 +1,21 @@
 const aiSensyService = require("../services/aiSensyService");
 const connectDB = require("../db");
 
-async function testNearestGarages() {
+process.env.MONGODB_URI =
+  "mongodb+srv://sonparatey_db_user:pgYGYhorslWaGJnb@mechhelpcluster.hrzzmkp.mongodb.net/mechhelp?appName=MechHelpCluster";
+
+async function testDzire() {
   await connectDB();
 
-  console.log("=== Testing Nearest Garages Endpoint ===");
-  const res = await aiSensyService.getNearestGarages({
-    address: "Dharampeth, Nagpur",
+  console.log("=== Testing 'Dzire 2017' Petrol Service Plans ===");
+  const res = await aiSensyService.getServicePlans({
+    vname: "Dzire 2017",
+    fuelType: "Petrol",
+    selectedPlan: "Mech Basic",
   });
-  console.log("WhatsApp Output:\n");
-  console.log(res.whatsapp_text);
+  console.log("RESULT:\n", JSON.stringify(res, null, 2));
 
   process.exit(0);
 }
 
-testNearestGarages();
+testDzire();
