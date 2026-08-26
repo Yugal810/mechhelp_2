@@ -95,12 +95,18 @@ class AISensyService {
       cars = await Car.find(filter).lean();
     }
 
+    let yearMismatchRanges = [];
     if (year && cars.length > 0) {
       const yearFiltered = cars.filter((car) =>
         carService._rowMatchesYearFilter(car.year, null, year)
       );
       if (yearFiltered.length > 0) {
         cars = yearFiltered;
+      } else {
+        yearMismatchRanges = Array.from(
+          new Set(cars.map((c) => c.year).filter(Boolean))
+        );
+        cars = [];
       }
     }
 
@@ -125,10 +131,19 @@ class AISensyService {
     }
 
     if (!cars || cars.length === 0) {
+      const fullSearchTerm = `${modelQuery || "your vehicle"}${year ? " " + year : ""}`.trim();
+      let notFoundMsg = `Sorry, we couldn't find service plan details for *${fullSearchTerm}* (${fuelType || "Any fuel"}).`;
+
+      if (yearMismatchRanges.length > 0) {
+        const rangesStr = yearMismatchRanges.map((r) => `*${r}*`).join(", ");
+        notFoundMsg += `\n\nThe available model years in our database for *${modelQuery}* are: ${rangesStr}.\n\nPlease re-enter your request with a valid model year!`;
+      } else {
+        notFoundMsg += `\n\nPlease check the spelling or type a different model (e.g. *Honda Amaze 2018*).`;
+      }
+
       return {
         found: false,
-        whatsapp_text: `Sorry, we couldn't find service plan details for *${modelQuery || "your vehicle"
-          }* (${fuelType || "Any fuel"}${year ? ", " + year : ""}).\n\nPlease check the spelling or type a different model (e.g. *Honda Amaze 2018*).`,
+        whatsapp_text: notFoundMsg,
       };
     }
 
@@ -232,6 +247,42 @@ class AISensyService {
         `⚠️ *Pricing Revised – MECHHELP*`,
         ``,
         `Your ${fullVehicleNameWithYear} (${car.fuelType || fuelType || "Petrol"}) needs *${oilCapText}* engine oil — a bit more than our standard 3.6L plans, so pricing is adjusted accordingly.`,
+        ``,
+        chosenPlanHighlight,
+        ``,
+        `Other options:`,
+        ...otherOptionsList,
+        ``,
+        `Choose an option below 👇`,
+      ].join("\n");
+    } else if (isBS6) {
+      let chosenPlanHighlight = `💰 *Mech Basic - ${mechBasicPrice}*`;
+      let otherOptionsList = [
+        `Mech Lite - ${mechLitePrice}`,
+        `Mech Pro - ${mechProPrice}`,
+      ];
+
+      if (planLower.includes("lite")) {
+        chosenPlanHighlight = `💰 *Mech Lite - ${mechLitePrice}*`;
+        otherOptionsList = [
+          `Mech Basic - ${mechBasicPrice}`,
+          `Mech Pro - ${mechProPrice}`,
+        ];
+      } else if (planLower.includes("pro")) {
+        chosenPlanHighlight = `💰 *Mech Pro - ${mechProPrice}*`;
+        otherOptionsList = [
+          `Mech Lite - ${mechLitePrice}`,
+          `Mech Basic - ${mechBasicPrice}`,
+        ];
+      }
+
+      const displayOilNum = oilNum ? `${oilNum}L` : oilCapText;
+
+      whatsappMessage = [
+        `⚠️ *Pricing Revised – MECHHELP*`,
+        ``,
+        `Your ${fullVehicleNameWithYear} (${car.fuelType || fuelType || "Petrol"}) needs *${displayOilNum}* of BS6-compliant engine oil.`,
+        `Because BS6-grade oil requires specialized formulations , our standard plan pricing has been adjusted accordingly.`,
         ``,
         chosenPlanHighlight,
         ``,
