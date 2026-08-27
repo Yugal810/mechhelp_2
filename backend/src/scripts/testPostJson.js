@@ -7,13 +7,17 @@ process.env.MONGODB_URI =
 async function testDzire() {
   await connectDB();
 
-  console.log("=== Testing 'Tata Altroz 2020' Petrol Service Plans (BS6 Pricing Revised Template) ===");
-  const res = await aiSensyService.getServicePlans({
-    vname: "Tata Altroz 2020",
-    fuelType: "Petrol",
-    selectedPlan: "Mech Basic",
+  const Car = require("../models/Car");
+  const cars = await Car.find({ brand: /tata/i, model: /altroz/i }).lean();
+
+  console.log("=== TATA ALTROZ CARS IN DB ===");
+  cars.forEach((c) => {
+    console.log(
+      `ID: ${c._id} | Model: "${c.model}" | Year: "${c.year}" | Fuel: "${c.fuelType}" | PricingCat: "${c.pricingCategory}"`
+    );
+    const match = carService._rowMatchesYearFilter(c.year, null, "2010");
+    console.log(`Matches '2010'? -> ${match}`);
   });
-  console.log("RESULT:\n", JSON.stringify(res, null, 2));
 
   process.exit(0);
 }

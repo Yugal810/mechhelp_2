@@ -244,7 +244,7 @@ class AISensyService {
       }
 
       whatsappMessage = [
-        `⚠️ *Pricing Revised – MECHHELP*`,
+        `⚠️ *Pricing Revised*`,
         ``,
         `Your ${fullVehicleNameWithYear} (${car.fuelType || fuelType || "Petrol"}) needs *${oilCapText}* engine oil — a bit more than our standard 3.6L plans, so pricing is adjusted accordingly.`,
         ``,
@@ -279,7 +279,7 @@ class AISensyService {
       const displayOilNum = oilNum ? `${oilNum}L` : oilCapText;
 
       whatsappMessage = [
-        `⚠️ *Pricing Revised – MECHHELP*`,
+        `⚠️ *Pricing Revised*`,
         ``,
         `Your ${fullVehicleNameWithYear} (${car.fuelType || fuelType || "Petrol"}) needs *${displayOilNum}* of BS6-compliant engine oil.`,
         `Because BS6-grade oil requires specialized formulations , our standard plan pricing has been adjusted accordingly.`,
@@ -320,7 +320,7 @@ class AISensyService {
     }
 
     const confirmationMessage = [
-      `*✅ Booking Confirmed - MECHHELP*`,
+      `*✅ Booking Confirmed*`,
       ``,
       `🚗 Booked For - *${fullVehicleNameWithYear} (${car.fuelType || fuelType || "Petrol"})*`,
       `🔧 Plan Selected - *${chosenPlanName}*`,
