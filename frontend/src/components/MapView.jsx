@@ -35,9 +35,10 @@ export default function MapView({
     });
 
     L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
       {
-        attribution: "&copy; OpenStreetMap &copy; CARTO",
+        attribution: "&copy; OpenStreetMap contributors",
+        maxZoom: 19,
       }
     ).addTo(map);
 
