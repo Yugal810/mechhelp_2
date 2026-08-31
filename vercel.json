@@ -15,19 +15,19 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
+      "src": "/api(/.*)?",
       "dest": "/api/index.js"
     },
     {
-      "src": "/aisensy/(.*)",
+      "src": "/aisensy(/.*)?",
       "dest": "/api/index.js"
     },
     {
-      "src": "/cars/(.*)",
+      "src": "/cars(/.*)?",
       "dest": "/api/index.js"
     },
     {
-      "src": "/garages/(.*)",
+      "src": "/garages(/.*)?",
       "dest": "/api/index.js"
     },
     {
