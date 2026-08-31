@@ -51,20 +51,8 @@ app.get("/api", (_req, res) => {
   });
 });
 
-if (fs.existsSync(FRONTEND_DIST)) {
+if (process.env.NODE_ENV !== "production" && fs.existsSync(FRONTEND_DIST)) {
   app.use(express.static(FRONTEND_DIST));
-  app.get("*", (req, res, next) => {
-    if (req.path.startsWith("/api")) return next();
-    res.sendFile(path.join(FRONTEND_DIST, "index.html"));
-  });
-} else {
-  app.get("/", (_req, res) => {
-    res
-      .status(503)
-      .send(
-        "Frontend not built yet. Run `npm run build` or start Vite with `npm run dev:frontend`."
-      );
-  });
 }
 
 if (require.main === module) {
