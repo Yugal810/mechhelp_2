@@ -1,4 +1,8 @@
 const Car = require("../models/Car");
+const {
+  calculateCarConfidence,
+  DEFAULT_CONFIDENCE_THRESHOLD,
+} = require("../utils/fuzzyMatch");
 
 function escapeRegExp(str) {
   return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -89,6 +93,22 @@ class CarService {
 
     let cars = await Car.find(filter).lean();
 
+    if (query && query.trim() && cars.length === 0) {
+      delete filter.$or;
+      const candidates = await Car.find(filter).lean();
+      const scored = candidates.map((c) => ({
+        car: c,
+        score: calculateCarConfidence(query, c),
+      }));
+      scored.sort((a, b) => b.score - a.score);
+      cars = scored
+        .filter((item) => item.score >= DEFAULT_CONFIDENCE_THRESHOLD)
+        .map((item) => {
+          item.car.confidenceScore = item.score;
+          return item.car;
+        });
+    }
+
     if (year_mode || custom_year) {
       cars = cars.filter((car) =>
         this._rowMatchesYearFilter(car.year, year_mode, custom_year)
@@ -108,6 +128,7 @@ class CarService {
       mech_lite: c.mechLite,
       mech_basic: c.mechBasic,
       mech_pro: c.mechPro,
+      confidence_score: c.confidenceScore !== undefined ? c.confidenceScore : 1.0,
       ...c.details,
     }));
   }

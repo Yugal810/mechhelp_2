@@ -1,6 +1,10 @@
 const Car = require("../models/Car");
 const carService = require("./carService");
 const distanceService = require("./distanceService");
+const {
+  calculateCarConfidence,
+  DEFAULT_CONFIDENCE_THRESHOLD,
+} = require("../utils/fuzzyMatch");
 
 function escapeRegExp(str) {
   return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -75,6 +79,9 @@ class AISensyService {
     }
 
     let cars = [];
+    let bestConfidenceScore = 1.0;
+    let topSuggestions = [];
+
     if (modelQuery) {
       const words = modelQuery.split(" ").filter(Boolean);
       const wordRegexes = words.map((w) => new RegExp(escapeRegExp(w), "i"));
@@ -90,6 +97,42 @@ class AISensyService {
         const qRegex = new RegExp(escapeRegExp(modelQuery), "i");
         filter.$or = [{ brand: qRegex }, { model: qRegex }, { variant: qRegex }];
         cars = await Car.find(filter).lean();
+      }
+
+      // If exact regex search returns 0 cars, perform fuzzy confidence score search
+      if (cars.length === 0) {
+        delete filter.$and;
+        delete filter.$or;
+        const allCandidates = await Car.find(filter).lean();
+
+        const scoredCandidates = allCandidates.map((c) => ({
+          car: c,
+          score: calculateCarConfidence(modelQuery, c),
+        }));
+
+        scoredCandidates.sort((a, b) => b.score - a.score);
+
+        const threshold = DEFAULT_CONFIDENCE_THRESHOLD;
+        const matched = scoredCandidates.filter((item) => item.score >= threshold);
+
+        if (matched.length > 0) {
+          const topScore = matched[0].score;
+          const topMatched = matched.filter((item) => item.score >= topScore - 0.05);
+          cars = topMatched.map((item) => {
+            item.car.confidenceScore = item.score;
+            return item.car;
+          });
+          bestConfidenceScore = topScore;
+        } else {
+          topSuggestions = Array.from(
+            new Set(
+              scoredCandidates
+                .filter((item) => item.score > 0.35)
+                .slice(0, 3)
+                .map((item) => `${item.car.brand} ${item.car.model}`)
+            )
+          );
+        }
       }
     } else {
       cars = await Car.find(filter).lean();
@@ -137,6 +180,9 @@ class AISensyService {
       if (yearMismatchRanges.length > 0) {
         const rangesStr = yearMismatchRanges.map((r) => `*${r}*`).join(", ");
         notFoundMsg += `\n\nThe available model years in our database for *${modelQuery}* are: ${rangesStr}.\n\nPlease re-enter your request with a valid model year!`;
+      } else if (topSuggestions.length > 0) {
+        const suggestionsStr = topSuggestions.map((s) => `*${s}*`).join(", ");
+        notFoundMsg += `\n\nDid you mean: ${suggestionsStr}?\n\nPlease check the spelling or enter a valid vehicle model year.`;
       } else {
         notFoundMsg += `\n\nPlease check the spelling or type a different model (e.g. *Honda Amaze 2018*).`;
       }
@@ -332,6 +378,8 @@ class AISensyService {
 
     return {
       found: true,
+      confidence_score: car.confidenceScore !== undefined ? car.confidenceScore : bestConfidenceScore,
+      matched_model: fullVehicleNameWithYear,
       whatsapp_text: whatsappMessage,
       confirmation_text: confirmationMessage,
       is_above_3_7: isAboveStr,
