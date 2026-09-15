@@ -60,8 +60,10 @@ class ReferralService {
       { new: true, upsert: true }
     );
 
-    const encodedPlate = encodeURIComponent(cleanPlate);
-    const shareMessage = `Use my vehicle referral code *${cleanPlate}* on MECHHELP to get ₹${referral.discountValue} OFF your car service! Booking link: https://mechhelp-2.vercel.app/api/aisensy/service-plans?vname=Swift&referralCode=${encodedPlate}`;
+    const botNumber = process.env.WHATSAPP_BOT_NUMBER || "919270199836";
+    const prefilledText = `Hi MECHHELP, I want to book a car service using referral code ${cleanPlate}`;
+    const botLink = `https://wa.me/${botNumber}?text=${encodeURIComponent(prefilledText)}`;
+    const shareMessage = `Use my vehicle referral code *${cleanPlate}* on MECHHELP to get ₹${referral.discountValue} OFF your car service! Click here to book on WhatsApp: ${botLink}`;
     const shareLink = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage)}`;
 
     return {
@@ -70,6 +72,8 @@ class ReferralService {
       vehiclePlateNumber: referral.vehiclePlateNumber,
       referrerPhone: referral.referrerPhone,
       discountValue: referral.discountValue,
+      botNumber,
+      botLink,
       shareLink,
       shareMessage,
     };
