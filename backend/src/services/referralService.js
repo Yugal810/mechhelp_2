@@ -7,7 +7,11 @@ class ReferralService {
    * e.g. "MH-31 AB 1234" -> "MH31AB1234"
    */
   normalizePlate(rawStr = "") {
-    return String(rawStr || "")
+    const cleaned = String(rawStr || "").replace(/[\{\}\$]/g, "").trim();
+    if (!cleaned) return "";
+    const extracted = this.extractPlateNumber(cleaned);
+    if (extracted) return extracted;
+    return String(cleaned)
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, "")
       .trim();
@@ -15,13 +19,14 @@ class ReferralService {
 
   /**
    * Extract potential Indian vehicle plate number from arbitrary text string using regex pattern.
-   * e.g. "MH 31 AB 1234" or "MH31AB1234" or "DL01CA1234"
+   * e.g. "{Hi MECHHELP, I want to book a car service using referral code MH31AB1234}" -> "MH31AB1234"
    */
   extractPlateNumber(text = "") {
     if (!text) return null;
+    const cleanText = String(text).replace(/[\{\}\$]/g, "").trim();
     const plateRegex = /\b([A-Z]{2}\s?\d{1,2}\s?[A-Z]{1,3}\s?\d{4})\b/i;
-    const match = String(text).match(plateRegex);
-    return match ? this.normalizePlate(match[1]) : null;
+    const match = cleanText.match(plateRegex);
+    return match ? match[1].toUpperCase().replace(/[^A-Z0-9]/g, "").trim() : null;
   }
 
   /**
@@ -83,22 +88,25 @@ class ReferralService {
    * Validate a referral code (vehicle plate number) for a user attempting to book a service.
    */
   async validateReferralCode(rawCode, refereePhone = "") {
-    const cleanCode = this.normalizePlate(rawCode);
+    let cleanCode = this.extractPlateNumber(rawCode);
     if (!cleanCode) {
-      return { valid: false, reason: "No code provided" };
+      cleanCode = this.normalizePlate(rawCode);
+    }
+    if (!cleanCode) {
+      return { valid: false, discountValue: 0, reason: "No code provided", message: "No referral code provided." };
     }
 
     const referral = await Referral.findOne({ referralCode: cleanCode, isActive: true });
     if (!referral) {
-      return { valid: false, reason: "Invalid or inactive referral code" };
+      return { valid: false, discountValue: 0, reason: "Invalid or inactive referral code", message: `Referral code *${cleanCode}* is invalid or inactive.` };
     }
 
     if (referral.expiresAt && referral.expiresAt < new Date()) {
-      return { valid: false, reason: "Referral code has expired" };
+      return { valid: false, discountValue: 0, reason: "Referral code has expired", message: `Referral code *${cleanCode}* has expired.` };
     }
 
     if (referral.timesUsed >= referral.usageLimit) {
-      return { valid: false, reason: "Referral code usage limit reached" };
+      return { valid: false, discountValue: 0, reason: "Referral code usage limit reached", message: `Referral code *${cleanCode}* has reached its maximum usage limit.` };
     }
 
     // Check self-referral (prevent referrer from using their own plate for discount)
@@ -106,7 +114,7 @@ class ReferralService {
       const cleanReferee = String(refereePhone).replace(/[^0-9]/g, "").trim();
       const cleanReferrer = String(referral.referrerPhone).replace(/[^0-9]/g, "").trim();
       if (cleanReferee && cleanReferrer && cleanReferee === cleanReferrer) {
-        return { valid: false, reason: "Self-referral is not allowed" };
+        return { valid: false, discountValue: 0, reason: "Self-referral is not allowed", message: "You cannot use your own vehicle plate number as a referral code." };
       }
     }
 
@@ -118,6 +126,7 @@ class ReferralService {
       referrerName: referral.referrerName,
       discountType: referral.discountType,
       discountValue: referral.discountValue,
+      message: `🎉 Referral code *${referral.referralCode}* is valid! ₹${referral.discountValue} OFF will be applied to your service quote.`,
     };
   }
 
