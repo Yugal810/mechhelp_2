@@ -13,7 +13,7 @@ function escapeRegExp(str) {
 
 class AISensyService {
   /**
-   * Parse user query string and parameters to extract fuelType, year, car model query, selected plan, and referral code.
+   * Parse user query string and parameters to extract fuelType, year, car model query, selected plan, referral code, and referral flag.
    */
   parseInput(params = {}) {
     if (typeof params === "string") {
@@ -26,6 +26,18 @@ class AISensyService {
     let selectedPlan = params.selectedPlan || params.selected_plan || params.plan || "";
     let referralCode = params.referralCode || params.referral_code || params.referral || params.code || "";
     let customerPhone = params.phone || params.customerPhone || params.customer_phone || params.wa_number || "";
+    let referralFlag =
+      params.referral !== undefined
+        ? params.referral
+        : params.referral_applied !== undefined
+        ? params.referral_applied
+        : params.is_referral_valid !== undefined
+        ? params.is_referral_valid
+        : params.apply_referral !== undefined
+        ? params.apply_referral
+        : params.has_referral !== undefined
+        ? params.has_referral
+        : null;
 
     // Clean any leftover {{ }} or $ template wrappers
     rawQuery = String(rawQuery).replace(/[\{\}\$]/g, "").trim();
@@ -34,6 +46,9 @@ class AISensyService {
     selectedPlan = String(selectedPlan).replace(/[\{\}\$]/g, "").trim();
     referralCode = String(referralCode).replace(/[\{\}\$]/g, "").trim();
     customerPhone = String(customerPhone).replace(/[\{\}\$]/g, "").trim();
+    if (referralFlag !== null) {
+      referralFlag = String(referralFlag).replace(/[\{\}\$]/g, "").trim();
+    }
 
     // Extract referral code (vehicle plate format) from query string if not passed explicitly
     if (!referralCode) {
@@ -73,6 +88,7 @@ class AISensyService {
       selectedPlan,
       referralCode: referralService.normalizePlate(referralCode),
       customerPhone,
+      referralFlag,
     };
   }
 
@@ -80,7 +96,15 @@ class AISensyService {
    * Fetch service plans for AiSensy WhatsApp bot based on user input parameters
    */
   async getServicePlans(params = {}) {
-    const { modelQuery, fuelType, year, selectedPlan, referralCode, customerPhone } = this.parseInput(params);
+    const {
+      modelQuery,
+      fuelType,
+      year,
+      selectedPlan,
+      referralCode,
+      customerPhone,
+      referralFlag,
+    } = this.parseInput(params);
 
     if (!modelQuery && !fuelType && !year) {
       return {
@@ -90,13 +114,28 @@ class AISensyService {
       };
     }
 
-    // Validate referral code if provided
+    // Validate referral code or check explicit referral boolean flag
     let referralValidation = null;
-    if (referralCode) {
-      referralValidation = await referralService.validateReferralCode(referralCode, customerPhone);
+    let isReferralValid = false;
+    let discountVal = 0;
+
+    const flagStr = String(referralFlag || "").toLowerCase().trim();
+    const isFlagExplicitFalse = flagStr === "false" || flagStr === "0" || flagStr === "no";
+    const isFlagExplicitTrue = flagStr === "true" || flagStr === "1" || flagStr === "yes";
+
+    if (!isFlagExplicitFalse) {
+      if (referralCode) {
+        referralValidation = await referralService.validateReferralCode(referralCode, customerPhone);
+        if (referralValidation && referralValidation.valid) {
+          isReferralValid = true;
+          discountVal = referralValidation.discountValue || 200;
+        }
+      }
+      if (!isReferralValid && isFlagExplicitTrue) {
+        isReferralValid = true;
+        discountVal = 200;
+      }
     }
-    const isReferralValid = Boolean(referralValidation && referralValidation.valid);
-    const discountVal = isReferralValid ? (referralValidation.discountValue || 200) : 0;
 
     // Search cars matching inputs
     const filter = {};
