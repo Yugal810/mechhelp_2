@@ -1,6 +1,7 @@
 const Car = require("../models/Car");
 const carService = require("./carService");
 const distanceService = require("./distanceService");
+const referralService = require("./referralService");
 const {
   calculateCarConfidence,
   DEFAULT_CONFIDENCE_THRESHOLD,
@@ -12,7 +13,7 @@ function escapeRegExp(str) {
 
 class AISensyService {
   /**
-   * Parse user query string and parameters to extract fuelType, year, car model query, and selected plan.
+   * Parse user query string and parameters to extract fuelType, year, car model query, selected plan, and referral code.
    */
   parseInput(params = {}) {
     if (typeof params === "string") {
@@ -23,12 +24,27 @@ class AISensyService {
     let rawFuel = params.fuelType || params.fuel_type || params.fuel || "";
     let rawYear = params.year || "";
     let selectedPlan = params.selectedPlan || params.selected_plan || params.plan || "";
+    let referralCode = params.referralCode || params.referral_code || params.referral || params.code || "";
+    let customerPhone = params.phone || params.customerPhone || params.customer_phone || params.wa_number || "";
 
     // Clean any leftover {{ }} or $ template wrappers
     rawQuery = String(rawQuery).replace(/[\{\}\$]/g, "").trim();
     rawFuel = String(rawFuel).replace(/[\{\}\$]/g, "").trim();
     rawYear = String(rawYear).replace(/[\{\}\$]/g, "").trim();
     selectedPlan = String(selectedPlan).replace(/[\{\}\$]/g, "").trim();
+    referralCode = String(referralCode).replace(/[\{\}\$]/g, "").trim();
+    customerPhone = String(customerPhone).replace(/[\{\}\$]/g, "").trim();
+
+    // Extract referral code (vehicle plate format) from query string if not passed explicitly
+    if (!referralCode) {
+      const extractedPlate = referralService.extractPlateNumber(rawQuery);
+      if (extractedPlate) {
+        referralCode = extractedPlate;
+        // Strip plate number from model query so it doesn't mess up car search
+        const plateRegex = new RegExp(`\\b${escapeRegExp(extractedPlate)}\\b`, "gi");
+        rawQuery = rawQuery.replace(plateRegex, "").trim();
+      }
+    }
 
     // Extract Fuel Type if present in query string
     if (!rawFuel) {
@@ -55,6 +71,8 @@ class AISensyService {
       fuelType: rawFuel,
       year: rawYear,
       selectedPlan,
+      referralCode: referralService.normalizePlate(referralCode),
+      customerPhone,
     };
   }
 
@@ -62,7 +80,7 @@ class AISensyService {
    * Fetch service plans for AiSensy WhatsApp bot based on user input parameters
    */
   async getServicePlans(params = {}) {
-    const { modelQuery, fuelType, year, selectedPlan } = this.parseInput(params);
+    const { modelQuery, fuelType, year, selectedPlan, referralCode, customerPhone } = this.parseInput(params);
 
     if (!modelQuery && !fuelType && !year) {
       return {
@@ -71,6 +89,14 @@ class AISensyService {
           "Please provide your vehicle model and year (e.g. *Honda Amaze 2018*).",
       };
     }
+
+    // Validate referral code if provided
+    let referralValidation = null;
+    if (referralCode) {
+      referralValidation = await referralService.validateReferralCode(referralCode, customerPhone);
+    }
+    const isReferralValid = Boolean(referralValidation && referralValidation.valid);
+    const discountVal = isReferralValid ? (referralValidation.discountValue || 200) : 0;
 
     // Search cars matching inputs
     const filter = {};
@@ -199,7 +225,11 @@ class AISensyService {
       if (!val || val === "-" || String(val).toLowerCase() === "n/a") return "N/A";
       const cleaned = String(val).replace(/[^0-9]/g, "");
       if (!cleaned) return String(val);
-      return `₹${parseInt(cleaned, 10).toLocaleString("en-IN")}`;
+      let num = parseInt(cleaned, 10);
+      if (isReferralValid) {
+        num = Math.max(0, num - discountVal);
+      }
+      return `₹${num.toLocaleString("en-IN")}`;
     };
 
     const rawOilCap = String(car.oilCapacity || "").trim();
@@ -268,6 +298,10 @@ class AISensyService {
     const divider = "━━━━━━━━━━━━━━━━━━━━";
     let whatsappMessage = "";
 
+    const referralHeader = isReferralValid
+      ? `🎁 *Referral Discount Applied (-₹${discountVal})*\nCode: *${referralValidation.referralCode}*\n\n`
+      : "";
+
     if (isAbove3_7) {
       let chosenPlanHighlight = `💰 *Mech Basic - ${mechBasicPrice}*`;
       let otherOptionsList = [
@@ -290,7 +324,7 @@ class AISensyService {
       }
 
       whatsappMessage = [
-        `⚠️ *Pricing Revised*`,
+        `${referralHeader}⚠️ *Pricing Revised*`,
         ``,
         `Your ${fullVehicleNameWithYear} (${car.fuelType || fuelType || "Petrol"}) needs *${oilCapText}* engine oil — a bit more than our standard 3.6L plans, so pricing is adjusted accordingly.`,
         ``,
@@ -325,7 +359,7 @@ class AISensyService {
       const displayOilNum = oilNum ? `${oilNum}L` : oilCapText;
 
       whatsappMessage = [
-        `⚠️ *Pricing Revised*`,
+        `${referralHeader}⚠️ *Pricing Revised*`,
         ``,
         `Your ${fullVehicleNameWithYear} (${car.fuelType || fuelType || "Petrol"}) needs *${displayOilNum}* of BS6-compliant engine oil.`,
         `Because BS6-grade oil requires specialized formulations , our standard plan pricing has been adjusted accordingly.`,
@@ -339,7 +373,7 @@ class AISensyService {
       ].join("\n");
     } else {
       whatsappMessage = [
-        `*MECHHELP Service Quote*`,
+        `${referralHeader}*MECHHELP Service Quote*`,
         headerMessage,
         `Based on your vehicle's oil capacity, here is your updated plan pricing:`,
         divider,
@@ -370,7 +404,7 @@ class AISensyService {
       ``,
       `🚗 Booked For - *${fullVehicleNameWithYear} (${car.fuelType || fuelType || "Petrol"})*`,
       `🔧 Plan Selected - *${chosenPlanName}*`,
-      `💰 Final Price - *${chosenPrice}*`,
+      `💰 Final Price - *${chosenPrice}*${isReferralValid ? ` (Referral Code ${referralValidation.referralCode} Applied)` : ""}`,
     ].join("\n");
 
     const isAboveStr = isAbove3_7 ? "True" : "False";
@@ -384,6 +418,9 @@ class AISensyService {
       confirmation_text: confirmationMessage,
       is_above_3_7: isAboveStr,
       is_bs6: isBS6Str,
+      referral_applied: isReferralValid,
+      referral_code: isReferralValid ? referralValidation.referralCode : null,
+      discount_amount: isReferralValid ? discountVal : 0,
     };
   }
 

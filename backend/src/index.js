@@ -6,6 +6,7 @@ const { FRONTEND_DIST, PORT } = require("./config");
 const carsRouter = require("./routes/cars");
 const garagesRouter = require("./routes/garages");
 const aisensyRouter = require("./routes/aisensy");
+const referralsRouter = require("./routes/referrals");
 
 const app = express();
 
@@ -38,6 +39,8 @@ app.use("/api/garages", garagesRouter);
 app.use("/garages", garagesRouter);
 app.use("/api/aisensy", aisensyRouter);
 app.use("/aisensy", aisensyRouter);
+app.use("/api/referrals", referralsRouter);
+app.use("/referrals", referralsRouter);
 
 app.get("/api", (_req, res) => {
   res.json({
@@ -47,6 +50,7 @@ app.get("/api", (_req, res) => {
       cars: "/api/cars",
       garages: "/api/garages",
       aisensy: "/api/aisensy/service-plans",
+      referrals: "/api/referrals",
     },
   });
 });
