@@ -3,12 +3,34 @@ const referralService = require("../services/referralService");
 
 const router = express.Router();
 
+function extractReqParams(req) {
+  let bodyObj = {};
+  if (typeof req.body === "object" && req.body !== null) {
+    bodyObj = req.body;
+  } else if (typeof req.body === "string" && req.body.trim()) {
+    try {
+      bodyObj = JSON.parse(req.body);
+    } catch (e1) {
+      try {
+        const parsed = new URLSearchParams(req.body);
+        for (const [k, v] of parsed.entries()) {
+          bodyObj[k] = v;
+        }
+      } catch (e2) {
+        bodyObj = { text: req.body, code: req.body };
+      }
+    }
+  }
+  return { ...req.query, ...bodyObj };
+}
+
 /**
  * Register a completed service and create vehicle plate referral code
  * Body: { vehiclePlateNumber, referrerPhone, referrerName, vehicleModel, discountValue, usageLimit }
  */
 router.post("/register", async (req, res) => {
   try {
+    const params = extractReqParams(req);
     const {
       vehiclePlateNumber,
       referrerPhone,
@@ -16,7 +38,7 @@ router.post("/register", async (req, res) => {
       vehicleModel,
       discountValue,
       usageLimit,
-    } = req.body;
+    } = params;
 
     if (!vehiclePlateNumber || !referrerPhone) {
       return res.status(400).json({
@@ -47,31 +69,22 @@ router.post("/register", async (req, res) => {
  */
 router.all("/validate", async (req, res) => {
   try {
+    const params = extractReqParams(req);
     const code =
-      req.query.code ||
-      req.query.referralCode ||
-      req.query.referral_code ||
-      req.query.vname ||
-      req.query.query ||
-      req.query.text ||
-      req.body.code ||
-      req.body.referralCode ||
-      req.body.referral_code ||
-      req.body.vname ||
-      req.body.query ||
-      req.body.text;
+      params.code ||
+      params.referralCode ||
+      params.referral_code ||
+      params.vname ||
+      params.query ||
+      params.text ||
+      params.rawText;
 
     const refereePhone =
-      req.query.refereePhone ||
-      req.query.phone ||
-      req.query.customerPhone ||
-      req.query.customer_phone ||
-      req.query.wa_number ||
-      req.body.refereePhone ||
-      req.body.phone ||
-      req.body.customerPhone ||
-      req.body.customer_phone ||
-      req.body.wa_number ||
+      params.refereePhone ||
+      params.phone ||
+      params.customerPhone ||
+      params.customer_phone ||
+      params.wa_number ||
       "";
 
     if (!code) {
@@ -102,7 +115,8 @@ router.all("/validate", async (req, res) => {
  */
 router.post("/trigger-feedback", async (req, res) => {
   try {
-    const { vehiclePlateNumber, customerPhone, customerName, vehicleModel } = req.body;
+    const params = extractReqParams(req);
+    const { vehiclePlateNumber, customerPhone, customerName, vehicleModel } = params;
 
     if (!vehiclePlateNumber || !customerPhone) {
       return res.status(400).json({
